@@ -393,7 +393,7 @@ function build_julia(ARGS, version::VersionNumber; jllversion=version)
 
     if version.major == 1 && version.minor == 10
         push!(dependencies, BuildDependency("MbedTLS_jll")),
-        push!(dependencies, BuildDependency(get_addable_spec("LLVM_full_jll", v"15.0.7+10")))
+        push!(dependencies, BuildDependency(get_addable_spec("LLVM_full_jll", v"15.0.7+11")))
     elseif version.major == 1 && version.minor == 11
         push!(dependencies, BuildDependency("MbedTLS_jll")),
         push!(dependencies, BuildDependency(get_addable_spec("LLVM_full_jll", v"16.0.6+4")))
