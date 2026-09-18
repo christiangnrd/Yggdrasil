@@ -1,8 +1,7 @@
-From 33d0aeda4bd53e561d9c12f3b51f93d423cb56fc Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Tim Besard <tim.besard@gmail.com>
 Date: Mon, 17 Aug 2026 15:57:39 +0200
-Subject: [PATCH 2/2] CanonicalizeBarriers: split reconverging barrier
- successors
+Subject: [PATCH] CanonicalizeBarriers: split reconverging barrier successors
 
 Parallel-region formation treats successors of a barrier block as entries of
 disjoint regions. Bounds-checked Julia kernels can instead branch around a
@@ -39,9 +38,9 @@ index 9dc1dad19..d30b23a88 100644
  #include <llvm/IR/Instructions.h>
  #include <llvm/IR/Module.h>
 @@ -60,6 +63,31 @@ static bool processFunction(Function &F, WorkitemHandlerType Handler);
-
+ 
  using InstructionSet = std::set<llvm::Instruction *>;
-
+ 
 +// Parallel region formation treats successors of a barrier block as entries
 +// of disjoint regions. If the successors reconverge before another barrier,
 +// the branch instead belongs to a single region and needs a common entry.
@@ -69,7 +68,7 @@ index 9dc1dad19..d30b23a88 100644
 +
  static bool canonicalizeBarriers(Function &F, WorkitemHandlerType Handler) {
    bool changed = false;
-
+ 
 @@ -149,11 +177,15 @@ static bool processFunction(Function &F, WorkitemHandlerType Handler) {
      //     (t->getPrevNode() != *i)) {
      // Change: barriers with several successors are all right
@@ -81,34 +80,34 @@ index 9dc1dad19..d30b23a88 100644
 +    const bool MustSplitSuccessors =
 +        t->getNumSuccessors() > 1 &&
 +        (Handler == WorkitemHandlerType::CBS || successorsReconverge(t));
-
+ 
      const bool HasNonBranchInstructionsAfterBarrier =
 -        t->getPrevNode() != *i ||
 -        (Handler == WorkitemHandlerType::CBS && t->getNumSuccessors() > 1);
 +        t->getPrevNode() != *i || MustSplitSuccessors;
-
+ 
      if (HasNonBranchInstructionsAfterBarrier) {
        BasicBlock *new_b = SplitBlock(b, (*i)->getNextNode());
 diff --git a/tests/regression/CMakeLists.txt b/tests/regression/CMakeLists.txt
-index 57aa91cd8..a47eebf39 100644
+index 64d713854..a101f31b5 100644
 --- a/tests/regression/CMakeLists.txt
 +++ b/tests/regression/CMakeLists.txt
-@@ -31,6 +31,7 @@ set(C_PROGRAMS_TO_BUILD test_assign_loop_variable_to_privvar_makes_it_local
-      test_issue_1711 test_issue_1794 test_issue_1747
+@@ -33,6 +33,7 @@ set(C_PROGRAMS_TO_BUILD test_assign_loop_variable_to_privvar_makes_it_local
       test_rematerialized_alloca_load_with_outside_pr_users
       test_peeled_wi_global_id
+      test_multi_exit_barrier_region
 +     test_barrier_divergent_skip
       test_divergent_implicit_barrier_entry
       test_uniform_implicit_barrier_entry
       test_localmem_load_across_barrier
-@@ -160,6 +161,8 @@ add_test_pocl(NAME "regression/test_issue_1747" COMMAND "test_issue_1747" "0" "$
-
- add_test_pocl(NAME "regression/peeled_wi_global_id" WORKITEM_HANDLER "loopvec;cbs;" COMMAND "test_peeled_wi_global_id" LABELS ${SPIRV_LABELS})
-
+@@ -172,6 +173,8 @@ add_test_pocl(NAME "regression/peeled_wi_global_id" WORKITEM_HANDLER "loopvec;cb
+ 
+ add_test_pocl(NAME "regression/multi_exit_barrier_region" WORKITEM_HANDLER "loops;loopvec;cbs;" COMMAND "test_multi_exit_barrier_region" LABELS ${SPIRV_LABELS})
+ 
 +add_test_pocl(NAME "regression/barrier_divergent_skip" WORKITEM_HANDLER "loops;loopvec;cbs;" COMMAND "test_barrier_divergent_skip" LABELS ${SPIRV_LABELS})
 +
  add_test_pocl(NAME "regression/divergent_implicit_barrier_entry" WORKITEM_HANDLER "loops;loopvec;cbs;" COMMAND "test_divergent_implicit_barrier_entry")
-
+ 
  add_test_pocl(NAME "regression/uniform_implicit_barrier_entry" WORKITEM_HANDLER "loops;loopvec;cbs;" COMMAND "test_uniform_implicit_barrier_entry")
 diff --git a/tests/regression/test_barrier_divergent_skip.c b/tests/regression/test_barrier_divergent_skip.c
 new file mode 100644
