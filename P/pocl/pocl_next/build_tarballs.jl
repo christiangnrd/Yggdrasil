@@ -13,7 +13,7 @@ include(joinpath(YGGDRASIL_DIR, "platforms", "macos_sdks.jl"))
 # argument (false here). See ../common.jl for the full rationale.
 
 name = "pocl_next"
-version = v"7.2.0"
+version = v"8.0.0"
 llvm_version = v"22.1.1"
 macos_sdk_version = "11.0"
 
@@ -23,7 +23,7 @@ macos_sdk_version = "11.0"
 sources = [
     DirectorySource("./bundled"),
     GitSource("https://github.com/pocl/pocl",
-              "888c9774b94590fff1afef003154ca2c0ea66605"), # tag v7.2
+              "aaaa2d67b4f3cfe7b7d55a4984d5adb168d72d1a"), # main (v8.0)
     # vendored SPIR-V translator, built as a static library against our LLVM (see
     # common.jl); this is the latest LLVM-22.1 maintenance revision.
     GitSource("https://github.com/KhronosGroup/SPIRV-LLVM-Translator.git",
